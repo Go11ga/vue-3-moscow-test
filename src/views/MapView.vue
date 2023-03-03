@@ -31,6 +31,39 @@ export default {
         points: []
     }),
 
+    computed: {
+        // границы координат
+        getBounds() {
+            const totalArr = [
+                ...this.districts['north'].coords,
+                ...this.districts['east'].coords,
+                ...this.districts['southWest'].coords,
+                ...this.districts['west'].coords
+            ]
+
+            // все значения широты
+            const fullLats = []
+            // все значения долготы
+            const fullLons = []
+
+            totalArr.forEach(el => {
+                fullLats.push(el[0])
+                fullLons.push(el[1])
+            })
+            
+
+            // границы диапазона широты
+            const latsBounds = minmax(fullLats)
+            // границы диапазона долготы
+            const lonsBounds = minmax(fullLons)
+
+            return {
+                latsBounds,
+                lonsBounds
+            }
+        }
+    },
+
     methods: {
         // инициализация карты
         initLMap() {
@@ -84,26 +117,20 @@ export default {
 
         // генерация точек
         generatePoints() {
-            // все значения широты
-            const fullLats = []
-            // все значения долготы
-            const fullLons = []
+            let i = 0
 
-            for(let key in this.districts) {
-                this.districts[key].coords.forEach(el => {
-                    fullLats.push(el[0])
-                    fullLons.push(el[1])
-                })
+            const count = () => {
+                do {
+                    i++
+                    this.makePoint(this.getBounds.latsBounds, this.getBounds.lonsBounds)
+                } while (i < this.POINTS_QTY / 10)
+
+                if (i < this.POINTS_QTY) {
+                    setTimeout(count)
+                }
             }
 
-            // границы диапазона широты
-            const latsBounds = minmax(fullLats)
-            // границы диапазона долготы
-            const lonsBounds = minmax(fullLons)
-
-            for(let i = 0; i < this.POINTS_QTY; i++) {
-                this.makePoint(latsBounds, lonsBounds)
-            }
+            count()
         },
 
         // генерация одной точки
@@ -122,10 +149,14 @@ export default {
             for(let key in this.drawnItems._layers) {
                 let check = checkMarker(marker, this.drawnItems._layers[key])
 
-                checkResults.push({
-                    check,
-                    key
-                })
+                if(check) {
+                    checkResults.push({
+                        check,
+                        key
+                    })
+
+                    break
+                }
             }
 
             // координаты попали хотя бы в один округ
