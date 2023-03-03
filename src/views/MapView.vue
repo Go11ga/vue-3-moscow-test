@@ -2,17 +2,39 @@
     <div class="layout">
 
         <div class="layout__info">
+            <div class="layout__chart">
+                <MapChart
+                    v-if="pointsAreReady"
+                    :points="points"
+                    @sendPoints="renderMarkers"
+                />
+            </div>
+            
+            <hr>
 
+            <div class="layout__wrapper">
+                <div class="layout__text">
+                    Точек: {{ points.length }}
+                </div>
+                
+                <button
+                    class="layout__btn"
+                    @click="updatePoints"
+                    :disabled="!pointsAreReady"
+                >
+                    Обновить точки
+                </button>
+            </div>
+            
         </div>
 
-        <div class="layout__map" id="map">
-
-        </div>
+        <div class="layout__map" id="map"></div>
 
     </div>
 </template>
 
 <script>
+import MapChart from '@/components/MapChart.vue'
 import L from 'leaflet'
 import 'leaflet-draw/dist/leaflet.draw-src.js'
 import districts from '@/mocks/districts.js'
@@ -21,6 +43,10 @@ import getRandom from '@/utils/getRandom.js'
 import checkMarker from '@/utils/checkMarker.js'
 
 export default {
+    components: {
+        MapChart
+    },
+
     data: () => ({
         map: null,
         icon: null,
@@ -28,7 +54,8 @@ export default {
         districts,
         layerLinks: [],
         POINTS_QTY: 100,
-        points: []
+        points: [],
+        markers: []
     }),
 
     computed: {
@@ -51,7 +78,6 @@ export default {
                 fullLons.push(el[1])
             })
             
-
             // границы диапазона широты
             const latsBounds = minmax(fullLats)
             // границы диапазона долготы
@@ -61,6 +87,11 @@ export default {
                 latsBounds,
                 lonsBounds
             }
+        },
+
+        // точки сгенерированы
+        pointsAreReady() {
+            return this.points.length === this.POINTS_QTY
         }
     },
 
@@ -70,7 +101,7 @@ export default {
             this.map = L.map('map', {
                 center: [55.7522200, 37.6155600],
                 zoomControl: true,
-                zoom: 11,
+                zoom: 10,
                 minZoom: 5,
                 maxZoom: 19,
                 attributionControl: false
@@ -117,20 +148,9 @@ export default {
 
         // генерация точек
         generatePoints() {
-            let i = 0
-
-            const count = () => {
-                do {
-                    i++
-                    this.makePoint(this.getBounds.latsBounds, this.getBounds.lonsBounds)
-                } while (i < this.POINTS_QTY / 10)
-
-                if (i < this.POINTS_QTY) {
-                    setTimeout(count)
-                }
+            for(let i = 0; i < this.POINTS_QTY; i++) {
+                this.makePoint(this.getBounds.latsBounds, this.getBounds.lonsBounds)
             }
-
-            count()
         },
 
         // генерация одной точки
@@ -163,8 +183,6 @@ export default {
             let pointIsInBounds = checkResults.some(el => el.check)
 
             if(pointIsInBounds) {
-                marker.addTo(this.map)
-
                 let result = checkResults.find(el => el.check)
                 let layer = this.layerLinks.find(el => el.id == result.key)
 
@@ -178,6 +196,44 @@ export default {
                 // запуск повторной генерации
                 this.makePoint(latsBounds, lonsBounds)
             }
+        },
+
+        // рендеринг маркеров
+        renderMarkers(points) {
+            this.clearMarkers()
+
+            for(let key in points) {
+                let marker = L.marker([points[key].coords[0], points[key].coords[1]], { icon: this.icon }).addTo(this.map)
+                this.markers.push(marker)
+            }
+        },
+
+        // удаление маркеров
+        clearMarkers() {
+            this.markers.forEach(el => {
+                this.map.removeLayer(el)
+            })
+        },
+
+        // перегенерировать точки
+        updatePoints() {
+            this.clearMarkers()
+            this.markers.length = 0
+
+            this.points = []
+
+            setTimeout(() => {
+                this.generatePoints()
+            })
+        }
+    },
+
+    watch: {
+        // все точки сгенерированы
+        pointsAreReady(val) {
+            if(val) {
+                this.renderMarkers(this.points)
+            }  
         }
     },
 
@@ -201,6 +257,18 @@ export default {
 
     &__info {
         width: 20%;
+    }
+
+    &__chart {
+        min-height: 400px;
+    }
+
+    &__wrapper {
+        padding: 6px;
+    }
+
+    &__text {
+        margin-bottom: 12px;
     }
 
     &__map {
