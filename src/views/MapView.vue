@@ -213,13 +213,14 @@ export default {
             this.markers.forEach(el => {
                 this.map.removeLayer(el)
             })
+
+            this.markers.length = 0
         },
 
         // перегенерировать точки
         updatePoints() {
             this.clearMarkers()
-            this.markers.length = 0
-
+            
             this.points = []
 
             setTimeout(() => {
@@ -256,7 +257,7 @@ export default {
     justify-content: space-between;
 
     &__info {
-        width: 20%;
+        width: 30%;
     }
 
     &__chart {
@@ -273,7 +274,7 @@ export default {
 
     &__map {
         height: 100%;
-        width: 80%;
+        width: 70%;
 
         cursor: crosshair;
 
