@@ -163,37 +163,26 @@ export default {
 
             const marker = L.marker([point[0], point[1]], { icon: this.icon })
 
-            const checkResults = []
+            // флаг
+            let check = false
 
-            // проверка координат маркера по всем округам
             for(let key in this.drawnItems._layers) {
-                let check = checkMarker(marker, this.drawnItems._layers[key])
-
+                check = checkMarker(marker, this.drawnItems._layers[key])
+                
                 if(check) {
-                    checkResults.push({
-                        check,
-                        key
+                    let layer = this.layerLinks.find(el => el.id == key)
+                    
+                    // запись точки
+                    this.points.push({
+                        ...layer,
+                        coords: point
                     })
 
                     break
                 }
             }
 
-            // координаты попали хотя бы в один округ
-            let pointIsInBounds = checkResults.some(el => el.check)
-
-            if(pointIsInBounds) {
-                let result = checkResults.find(el => el.check)
-                let layer = this.layerLinks.find(el => el.id == result.key)
-
-                // запись точки
-                this.points.push({
-                    ...layer,
-                    coords: point
-                })
-                
-            } else {
-                // запуск повторной генерации
+            if(!check) {
                 this.makePoint(latsBounds, lonsBounds)
             }
         },
